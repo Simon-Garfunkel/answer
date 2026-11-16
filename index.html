@@ -1,169 +1,207 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SYSTEM ACCESS // TERMINAL 04</title>
-    <style>
-        /* Retro CRT Terminal Styling */
-        body {
-            background-color: #050505;
-            color: #33ff33;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 18px;
-            margin: 0;
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            min-height: 80vh;
-            text-shadow: 0 0 5px rgba(51, 255, 51, 0.7);
-            overflow-x: hidden;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Password & Code Word Terminal</title>
+  <style>
+    /* Classic retro terminal styling */
+    body {
+      background-color: #111;
+      color: #33ff33;
+      font-family: 'Courier New', Courier, monospace;
+      padding: 40px;
+      max-width: 700px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
 
-        /* Subtle scanline effect */
-        body::before {
-            content: " ";
-            display: block;
-            position: fixed;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
-            background-size: 100% 4px;
-            z-index: 2;
-            pointer-events: none;
-        }
+    #terminal-box {
+      border: 1px solid #33ff33;
+      padding: 20px;
+      min-height: 160px;
+      margin-bottom: 20px;
+      background-color: #0a0a0a;
+    }
 
-        .terminal-box {
-            max-width: 650px;
-            margin: 0 auto;
-            width: 100%;
-        }
+    .code-reveal {
+      margin-top: 20px;
+      padding: 12px;
+      border: 1px dashed #ffff33;
+      color: #ffff33;
+      font-weight: bold;
+      background-color: #1a1a00;
+    }
 
-        p {
-            line-height: 1.5;
-            margin: 10px 0;
-        }
+    .input-area {
+      display: flex;
+      gap: 10px;
+    }
 
-        .input-line {
-            display: flex;
-            align-items: center;
-            margin-top: 20px;
-        }
+    input[type="text"] {
+      background-color: #000;
+      color: #33ff33;
+      border: 1px solid #33ff33;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 16px;
+      flex-grow: 1;
+      outline: none;
+    }
 
-        .prompt {
-            margin-right: 10px;
-            font-weight: bold;
-        }
+    button {
+      background-color: #33ff33;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
 
-        input {
-            background: transparent;
-            border: none;
-            color: #33ff33;
-            font-family: inherit;
-            font-size: inherit;
-            outline: none;
-            width: 100%;
-            text-shadow: 0 0 5px rgba(51, 255, 51, 0.7);
-            caret-color: #33ff33;
-        }
+    button:hover {
+      background-color: #28cc28;
+    }
 
-        .denied {
-            color: #ff3333;
-            text-shadow: 0 0 5px rgba(255, 51, 51, 0.7);
-        }
+    #next-btn {
+      display: none;
+      width: 100%;
+      background-color: #ffff33;
+    }
 
-        .granted {
-            color: #ffffff;
-            text-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
-        }
+    #next-btn:hover {
+      background-color: #cccc28;
+    }
 
-        .hidden {
-            display: none;
-        }
-
-        /* Blinking cursor animation for narrative text */
-        .cursor::after {
-            content: "█";
-            animation: blink 1s step-end infinite;
-        }
-
-        @keyframes blink {
-            50% { opacity: 0; }
-        }
-    </style>
+    #feedback {
+      margin-top: 15px;
+      color: #ff4444;
+      min-height: 24px;
+    }
+  </style>
 </head>
 <body>
 
-<div class="terminal-box">
-    <p>*** MAINFRAME SECURITY GATEWAY v2.4 ***</p>
-    <p id="status-msg">ENTER PASSPHRASE TO CONTINUE:</p>
+  <!-- Main display for password prompts and revealed code words -->
+  <div id="terminal-box">
+    <div id="prompt-text"></div>
+    <div id="reward-box" class="code-reveal" style="display: none;"></div>
+  </div>
 
-    <div class="input-line" id="input-container">
-        <span class="prompt">&gt;</span>
-        <!-- Change type="text" to type="password" if you want asterisks/dots -->
-        <input type="text" id="password-input" autocomplete="off" autofocus>
-    </div>
+  <!-- Password input controls -->
+  <div class="input-area" id="controls">
+    <input type="text" id="password-input" placeholder="Enter password..." autocomplete="off">
+    <button id="submit-btn">SUBMIT</button>
+  </div>
 
-    <!-- Secret content revealed upon success -->
-    <div id="secret-content" class="hidden">
-        <br>
-        <p class="granted">*** ACCESS GRANTED ***</p>
-        <p>The heavy steel blast doors grind open, revealing a dimly lit corridor smelling of ozone and damp stone.</p>
-        <p class="cursor">What do you do next?</p>
-    </div>
-</div>
+  <!-- Button to advance after reading the code word -->
+  <button id="next-btn">PROCEED TO NEXT PASSWORD &gt;&gt;</button>
 
-<script>
-    // --- CONFIGURATION ---
-    // Change this to whatever password your players need to find!
-    const SECRET_PASSWORD = "Luke22"; 
-    
-    // Set to true if capitalization matters, false if "xyzzy" and "XYZZY" both work
-    const CASE_SENSITIVE = false; 
-    // ---------------------
+  <!-- Error messages -->
+  <div id="feedback"></div>
 
-    const inputField = document.getElementById('password-input');
-    const statusMsg = document.getElementById('status-msg');
-    const inputContainer = document.getElementById('input-container');
-    const secretContent = document.getElementById('secret-content');
+  <script>
+    // 1. DEFINE YOUR 5 PASSWORDS AND REWARD CODE WORDS HERE
+    const sequence = [
+      {
+        prompt: "1 OF 5: Enter Password 1.",
+        password: "typethisintwicealluppercaseNOspacesLOWERCASE",
+        codeWord: "art"
+      },
+      {
+        prompt: "2 OF 5: Enter Password 2.",
+        password: "EnterTheWords:485then-colonTHENUMBERtwo",
+        codeWord: "boxer"
+      },
+      {
+        prompt: "3 OF 5: Enter Password 3.",
+        password: "CarrotCaretKarrritThenTheSymbol^",
+        codeWord: "groovy"
+      },
+      {
+        prompt: "4 OF 5: Enter Password 4.",
+        password: ".dot,comma..commaTHEWORDcommaINQUOTES",
+        codeWord: "homeward"
+      },
+      {
+        prompt: "5 OF 5: Enter Password 5.",
+        password: "Under_and_Score_wordsseperatedbyhyphens",
+        codeWord: "silence"
+      }
+    ];
 
-    // Keep focus on the input field even if the user clicks elsewhere
-    document.addEventListener('click', () => {
-        inputField.focus();
-    });
+    const finalMessage = "ALL 5 PASSWORDS ACCEPTED!";
 
-    // Listen for the Enter key
-    inputField.addEventListener('keypress', function(event) {
-        if (event.key === 'Enter') {
-            checkPassword();
-        }
-    });
+    // 2. GAME STATE & HTML ELEMENTS
+    let currentIndex = 0;
+
+    const promptText = document.getElementById("prompt-text");
+    const rewardBox = document.getElementById("reward-box");
+    const passwordInput = document.getElementById("password-input");
+    const submitBtn = document.getElementById("submit-btn");
+    const nextBtn = document.getElementById("next-btn");
+    const feedback = document.getElementById("feedback");
+    const controls = document.getElementById("controls");
+
+    // 3. GAME FUNCTIONS
+    function loadPrompt() {
+      // Reset UI for the new stage
+      rewardBox.style.display = "none";
+      nextBtn.style.display = "none";
+      feedback.textContent = "";
+
+      if (currentIndex < sequence.length) {
+        promptText.textContent = sequence[currentIndex].prompt;
+        controls.style.display = "flex";
+        passwordInput.value = "";
+        passwordInput.focus();
+      } else {
+        // All 5 stages completed
+        promptText.textContent = finalMessage;
+        controls.style.display = "none";
+      }
+    }
 
     function checkPassword() {
-        let userGuess = inputField.value.trim();
-        let target = SECRET_PASSWORD;
+      const userGuess = passwordInput.value.trim().toLowerCase();
+      const correctPassword = sequence[currentIndex].password.toLowerCase();
 
-        if (!CASE_SENSITIVE) {
-            userGuess = userGuess.toUpperCase();
-            target = target.toUpperCase();
-        }
+      if (userGuess === correctPassword) {
+        feedback.textContent = "";
+        controls.style.display = "none";
 
-        if (userGuess === target) {
-            // AUTHORIZED
-            inputContainer.classList.add('hidden');
-            statusMsg.classList.add('hidden');
-            secretContent.classList.remove('hidden');
-            
-            // Optional: Uncomment the line below to redirect to another page instead
-            // window.location.href = "level2.html";
-        } else {
-            // DENIED
-            statusMsg.textContent = "ACCESS DENIED. INVALID PASSPHRASE. TRY AGAIN:";
-            statusMsg.className = "denied";
-            inputField.value = "";
-        }
+        // Reveal the code word in yellow
+        rewardBox.textContent = "ACCESS GRANTED. CODE WORD: " + sequence[currentIndex].codeWord;
+        rewardBox.style.display = "block";
+
+        // Show the button to move to the next password
+        nextBtn.style.display = "block";
+        nextBtn.focus();
+      } else {
+        feedback.textContent = "INVALID PASSWORD. Try again";
+        passwordInput.value = "";
+        passwordInput.focus();
+      }
     }
-</script>
+
+    // 4. EVENT LISTENERS
+    submitBtn.addEventListener("click", checkPassword);
+
+    passwordInput.addEventListener("keypress", function(event) {
+      if (event.key === "Enter") {
+        checkPassword();
+      }
+    });
+
+    nextBtn.addEventListener("click", function() {
+      currentIndex++;
+      loadPrompt();
+    });
+
+    // Start the sequence
+    loadPrompt();
+  </script>
 
 </body>
 </html>
